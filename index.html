@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pythonista Web Editor v1.3.4</title>
+    <title>Pythonista Web Editor v1.3.5</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
@@ -44,7 +44,6 @@
             gap: 15px;
         }
 
-        /* MENU BUTTON (Top Left) */
         #menu-btn {
             background: none;
             border: none;
@@ -65,7 +64,6 @@
             gap: 10px;
         }
 
-        /* SAVE BUTTON */
         #save-btn {
             background-color: #444;
             color: #fff;
@@ -80,7 +78,6 @@
         }
         #save-btn:hover { background-color: #555; }
 
-        /* RUN BUTTON */
         #run-btn {
             background-color: #28a745;
             color: white;
@@ -154,11 +151,6 @@
             background: #094771 !important; /* VS Code Blue */
             color: #fff !important;
         }
-        
-        /* Highlight specific types differently in list if desired */
-        .hint-method { color: #dcdcaa; } /* Yellowish */
-        .hint-keyword { color: #c586c0; } /* Purpleish */
-
     </style>
 </head>
 <body>
@@ -168,7 +160,7 @@
         <div class="header-left">
             <button id="menu-btn" onclick="alert('Menu: Settings coming in v1.4!')">☰</button>
             <div>
-                <h1>Pythonista Runner <span class="version-tag">v1.3.4</span></h1>
+                <h1>Pythonista Runner <span class="version-tag">v1.3.5</span></h1>
             </div>
         </div>
         <div class="header-right">
@@ -179,14 +171,11 @@
 
     <div id="editor-wrapper">
 <textarea id="code-editor">
-# v1.3.4 Demo
-# 1. Type 'pri' -> Select 'print()'
-# 2. Type 'myList.' -> See .remove, .append suggestions
+# v1.3.5 Feature: F-Strings Support
+# Try typing the line below exactly:
+# print(f'
 
-myList = ['apple', 'banana']
-
-# Type below:
-
+my_val = 100
 </textarea>
     </div>
 
@@ -207,8 +196,6 @@ myList = ['apple', 'banana']
 
 <script>
     // --- 1. DATA DEFINITIONS ---
-
-    // Global Python Keywords
     const PYTHON_KEYWORDS = [
         "import", "from", "def", "return", "if", "elif", "else", 
         "while", "for", "in", "try", "except", "class", "True", "False", 
@@ -216,7 +203,6 @@ myList = ['apple', 'banana']
         "len", "range", "list", "dict", "set", "int", "str", "float"
     ];
 
-    // Common Methods (triggered after typing a dot)
     const PYTHON_METHODS = [
         "remove", "append", "extend", "insert", "pop", "clear", "index", 
         "count", "sort", "reverse", "copy", "split", "join", "strip", 
@@ -224,96 +210,100 @@ myList = ['apple', 'banana']
     ];
 
     // --- 2. EDITOR SETUP ---
-    
     var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
         mode: {name: "python", version: 3, singleLineStringErrors: false},
         theme: "material-darker",
         lineNumbers: true,
         indentUnit: 4,
         autoCloseBrackets: true,
-        extraKeys: {"Ctrl-Space": "autocomplete"}
+        extraKeys: {
+            "Ctrl-Space": "autocomplete",
+            // CUSTOM HANDLER FOR SINGLE QUOTE
+            "'": function(cm) {
+                return handleQuote(cm, "'");
+            },
+            // CUSTOM HANDLER FOR DOUBLE QUOTE
+            '"': function(cm) {
+                return handleQuote(cm, '"');
+            }
+        }
     });
 
+    // Helper logic for F-strings (v1.3.5)
+    function handleQuote(cm, quoteChar) {
+        var cur = cm.getCursor();
+        var line = cm.getLine(cur.line);
+        var charBefore = line.charAt(cur.ch - 1);
+        
+        // Check char BEFORE the one before (to see if 'f' is part of a word like 'if' or 'self')
+        // We only want to auto-close if 'f' is a prefix (preceded by space, bracket, or start of line)
+        var charTwoBefore = (cur.ch >= 2) ? line.charAt(cur.ch - 2) : " ";
+        var isWordCharBefore = /[a-zA-Z0-9_]/.test(charTwoBefore);
+
+        // If previous char is f/F and it's NOT part of a larger word
+        if ((charBefore === "f" || charBefore === "F") && !isWordCharBefore) {
+            cm.replaceSelection(quoteChar + quoteChar); // Insert pair
+            cm.setCursor({line: cur.line, ch: cur.ch + 1}); // Move to middle
+        } else {
+            // Default behavior (triggers standard autoCloseBrackets)
+            return CodeMirror.Pass;
+        }
+    }
+
     // --- 3. ADVANCED AUTOCOMPLETE ENGINE ---
-    
     editor.on("keyup", function (cm, event) {
-        // Prevent autocomplete on navigation keys
         if (!cm.state.completionActive && 
             !event.ctrlKey && !event.altKey && !event.metaKey &&
-            ((event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode === 190)) { // Letters or dot
+            ((event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode === 190)) { 
             
             CodeMirror.showHint(cm, function() {
                 var cur = cm.getCursor();
                 var token = cm.getTokenAt(cur);
                 
-                // Logic to detect if we are typing a method (after a dot)
-                var inner = {from: cm.getCursor(), to: cm.getCursor()};
                 var currentWord = token.string;
                 var start = token.start;
                 var end = cur.ch;
                 
-                // FIX: Check if the character *immediately before* the current word is a dot
-                // Or if the current token is actually the dot itself
+                // Smart Dot Context Detection
                 var isDotContext = false;
-                
                 if (currentWord === ".") {
                     isDotContext = true;
-                    currentWord = ""; // We are filtering against empty string (show all methods)
-                    start = cur.ch; // Start suggesting right after the dot
+                    currentWord = ""; 
+                    start = cur.ch; 
                 } else if (token.type === "property") {
-                    // CodeMirror often detects words after dots as "property"
                     isDotContext = true;
                 } else {
-                    // Manually check the character before the current token
                     var charBefore = cm.getRange({line: cur.line, ch: start - 1}, {line: cur.line, ch: start});
-                    if (charBefore === ".") {
-                        isDotContext = true;
-                    }
+                    if (charBefore === ".") isDotContext = true;
                 }
 
                 var list = [];
 
                 if (isDotContext) {
-                    // --- SCENARIO A: Dot Completion (Methods) ---
-                    // Filter common methods
                     list = PYTHON_METHODS.filter(function(item) {
                         return item.toLowerCase().startsWith(currentWord.toLowerCase());
                     });
                 } else {
-                    // --- SCENARIO B: Global Scope (Keywords + Variables) ---
-                    
-                    // 1. Scan document for user variables
                     var text = cm.getValue();
                     var foundWords = text.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
-                    
-                    // 2. Merge everything
                     var allWords = PYTHON_KEYWORDS.concat(foundWords);
-                    var uniqueWords = [...new Set(allWords)]; // Remove dupes
+                    var uniqueWords = [...new Set(allWords)];
 
-                    // 3. Filter based on what user typed
-                    // Exclude the word being typed itself so it doesn't suggest "myL" when typing "myL"
                     list = uniqueWords.filter(function(item) {
                         return item !== currentWord && item.toLowerCase().startsWith(currentWord.toLowerCase());
                     });
 
-                    // 4. PRIORITY INJECTION: print()
-                    // If the user is typing "p" or "pr" or "pri", explicitly add "print()" 
+                    // Priority Print
                     if ("print".startsWith(currentWord.toLowerCase())) {
-                        // We add "print()" with display text. 
-                        // Note: We use unshift to put it at the TOP of the list (Priority)
                         list.unshift({
                             text: "print()", 
                             displayText: "print()  (Function)",
                             hint: function(cm, self, data) {
-                                // Custom insert to put cursor inside brackets
                                 cm.replaceRange("print()", self.from, self.to);
                                 var cursorPos = self.from;
-                                cm.setCursor({line: cursorPos.line, ch: cursorPos.ch + 6}); // Move inside ()
+                                cm.setCursor({line: cursorPos.line, ch: cursorPos.ch + 6});
                             }
                         });
-                        
-                        // Ensure "print" (no brackets) is also there if desired, usually distinct
-                        // But since we want Priority, print() is first.
                     }
                 }
 
@@ -326,7 +316,7 @@ myList = ['apple', 'banana']
         }
     });
 
-    // --- 4. PYTHON ENGINE (Pyodide) ---
+    // --- 4. PYTHON ENGINE ---
     let pyodide = null;
     const outputDiv = document.getElementById("output");
     const runBtn = document.getElementById("run-btn");
@@ -371,14 +361,11 @@ myList = ['apple', 'banana']
         const code = editor.getValue();
         const blob = new Blob([code], { type: "text/x-python" });
         const url = URL.createObjectURL(blob);
-        
         const a = document.createElement("a");
         a.href = url;
         a.download = "script.py";
         document.body.appendChild(a);
         a.click();
-        
-        // Cleanup
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
