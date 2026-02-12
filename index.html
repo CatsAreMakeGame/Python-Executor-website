@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pythonista Web Editor</title>
+    <title>Pythonista Web Editor v1.3.4</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
@@ -29,7 +29,7 @@
         /* HEADER */
         header {
             background-color: #1a1a1a;
-            padding: 0 20px;
+            padding: 0 15px;
             border-bottom: 1px solid #333;
             display: flex;
             align-items: center;
@@ -38,7 +38,60 @@
             flex-shrink: 0;
         }
 
-        h1 { font-size: 18px; margin: 0; color: #fff; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* MENU BUTTON (Top Left) */
+        #menu-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        #menu-btn:hover { color: #fff; }
+
+        h1 { font-size: 16px; margin: 0; color: #fff; font-weight: 500; }
+        .version-tag { font-size: 10px; color: #666; margin-left: 5px; vertical-align: middle; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* SAVE BUTTON */
+        #save-btn {
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #save-btn:hover { background-color: #555; }
+
+        /* RUN BUTTON */
+        #run-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        #run-btn:hover { background-color: #218838; }
 
         /* EDITOR AREA */
         #editor-wrapper {
@@ -52,6 +105,7 @@
             height: 100%; 
             font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
             font-size: 15px;
+            line-height: 1.5;
         }
 
         /* CONSOLE AREA */
@@ -66,10 +120,12 @@
         #console-header {
             background: #333;
             padding: 5px 10px;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             font-weight: bold;
-            color: #ccc;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
         }
 
         #output {
@@ -81,62 +137,64 @@
             color: #fff;
         }
 
-        /* BUTTONS */
-        #run-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        #run-btn:hover { background-color: #218838; }
-
-        /* AUTOCOMPLETE STYLING (Pythonista Style) */
+        /* AUTOCOMPLETE STYLING */
         .CodeMirror-hints {
-            background: #2e2e2e !important;
-            border: 1px solid #444 !important;
+            background: #252526 !important;
+            border: 1px solid #454545 !important;
             border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            padding: 0 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            padding: 4px 0 !important;
         }
         .CodeMirror-hint {
-            color: #ccc !important;
-            padding: 6px 10px !important;
-            border-bottom: 1px solid #3a3a3a;
+            color: #d4d4d4 !important;
+            padding: 4px 10px !important;
+            font-family: 'Menlo', monospace;
         }
-        .CodeMirror-hint:last-child { border-bottom: none; }
-        
         .CodeMirror-hint-active {
-            background: #007acc !important; /* Blue highlight */
+            background: #094771 !important; /* VS Code Blue */
             color: #fff !important;
         }
+        
+        /* Highlight specific types differently in list if desired */
+        .hint-method { color: #dcdcaa; } /* Yellowish */
+        .hint-keyword { color: #c586c0; } /* Purpleish */
+
     </style>
 </head>
 <body>
 
 <div id="app-container">
     <header>
-        <h1>Pythonista Runner</h1>
-        <button id="run-btn" onclick="runPython()">Loading...</button>
+        <div class="header-left">
+            <button id="menu-btn" onclick="alert('Menu: Settings coming in v1.4!')">☰</button>
+            <div>
+                <h1>Pythonista Runner <span class="version-tag">v1.3.4</span></h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="save-btn" onclick="saveScript()">💾 Save</button>
+            <button id="run-btn" onclick="runPython()">Loading...</button>
+        </div>
     </header>
 
     <div id="editor-wrapper">
 <textarea id="code-editor">
-# Example: Variable Autocomplete
-# 1. Run this code
-# 2. Try typing 'my' on a new line!
+# v1.3.4 Demo
+# 1. Type 'pri' -> Select 'print()'
+# 2. Type 'myList.' -> See .remove, .append suggestions
 
-myList = ['bob', 'gram', 'oaky']
+myList = ['apple', 'banana']
 
-print("List created.")
+# Type below:
+
 </textarea>
     </div>
 
     <div id="console-wrapper">
-        <div id="console-header">Console Output</div>
+        <div id="console-header">
+            <span>Console Output</span>
+            <span style="cursor:pointer;" onclick="document.getElementById('output').innerHTML=''">Clear</span>
+        </div>
         <div id="output"><span style="color:#888;">Initializing Python environment...</span></div>
     </div>
 </div>
@@ -148,15 +206,25 @@ print("List created.")
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
 
 <script>
-    // 1. BASE KEYWORDS
+    // --- 1. DATA DEFINITIONS ---
+
+    // Global Python Keywords
     const PYTHON_KEYWORDS = [
-        "print", "import", "from", "def", "return", "if", "elif", "else", 
+        "import", "from", "def", "return", "if", "elif", "else", 
         "while", "for", "in", "try", "except", "class", "True", "False", 
         "None", "and", "or", "not", "break", "continue", "pass", "lambda",
         "len", "range", "list", "dict", "set", "int", "str", "float"
     ];
 
-    // 2. SETUP EDITOR
+    // Common Methods (triggered after typing a dot)
+    const PYTHON_METHODS = [
+        "remove", "append", "extend", "insert", "pop", "clear", "index", 
+        "count", "sort", "reverse", "copy", "split", "join", "strip", 
+        "lower", "upper", "replace", "find", "format", "keys", "values", "items"
+    ];
+
+    // --- 2. EDITOR SETUP ---
+    
     var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
         mode: {name: "python", version: 3, singleLineStringErrors: false},
         theme: "material-darker",
@@ -166,9 +234,10 @@ print("List created.")
         extraKeys: {"Ctrl-Space": "autocomplete"}
     });
 
-    // 3. INTELLIGENT AUTOCOMPLETE LOGIC
+    // --- 3. ADVANCED AUTOCOMPLETE ENGINE ---
+    
     editor.on("keyup", function (cm, event) {
-        // Ignore navigation keys
+        // Prevent autocomplete on navigation keys
         if (!cm.state.completionActive && 
             !event.ctrlKey && !event.altKey && !event.metaKey &&
             ((event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode === 190)) { // Letters or dot
@@ -176,29 +245,77 @@ print("List created.")
             CodeMirror.showHint(cm, function() {
                 var cur = cm.getCursor();
                 var token = cm.getTokenAt(cur);
+                
+                // Logic to detect if we are typing a method (after a dot)
+                var inner = {from: cm.getCursor(), to: cm.getCursor()};
                 var currentWord = token.string;
                 var start = token.start;
                 var end = cur.ch;
+                
+                // FIX: Check if the character *immediately before* the current word is a dot
+                // Or if the current token is actually the dot itself
+                var isDotContext = false;
+                
+                if (currentWord === ".") {
+                    isDotContext = true;
+                    currentWord = ""; // We are filtering against empty string (show all methods)
+                    start = cur.ch; // Start suggesting right after the dot
+                } else if (token.type === "property") {
+                    // CodeMirror often detects words after dots as "property"
+                    isDotContext = true;
+                } else {
+                    // Manually check the character before the current token
+                    var charBefore = cm.getRange({line: cur.line, ch: start - 1}, {line: cur.line, ch: start});
+                    if (charBefore === ".") {
+                        isDotContext = true;
+                    }
+                }
 
-                // Stop if typing special chars other than valid identifier parts
-                if (!currentWord.match(/^[a-zA-Z0-9_]+$/)) return;
+                var list = [];
 
-                // A. GET WORDS FROM DOCUMENT
-                // This regex finds every word in the editor
-                var text = cm.getValue();
-                var foundWords = text.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+                if (isDotContext) {
+                    // --- SCENARIO A: Dot Completion (Methods) ---
+                    // Filter common methods
+                    list = PYTHON_METHODS.filter(function(item) {
+                        return item.toLowerCase().startsWith(currentWord.toLowerCase());
+                    });
+                } else {
+                    // --- SCENARIO B: Global Scope (Keywords + Variables) ---
+                    
+                    // 1. Scan document for user variables
+                    var text = cm.getValue();
+                    var foundWords = text.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+                    
+                    // 2. Merge everything
+                    var allWords = PYTHON_KEYWORDS.concat(foundWords);
+                    var uniqueWords = [...new Set(allWords)]; // Remove dupes
 
-                // B. MERGE WITH KEYWORDS
-                var allWords = PYTHON_KEYWORDS.concat(foundWords);
+                    // 3. Filter based on what user typed
+                    // Exclude the word being typed itself so it doesn't suggest "myL" when typing "myL"
+                    list = uniqueWords.filter(function(item) {
+                        return item !== currentWord && item.toLowerCase().startsWith(currentWord.toLowerCase());
+                    });
 
-                // C. REMOVE DUPLICATES (Set)
-                var uniqueWords = [...new Set(allWords)];
-
-                // D. FILTER MATCHES
-                // We show words that start with what you typed
-                var list = uniqueWords.filter(function(item) {
-                    return item !== currentWord && item.toLowerCase().startsWith(currentWord.toLowerCase());
-                });
+                    // 4. PRIORITY INJECTION: print()
+                    // If the user is typing "p" or "pr" or "pri", explicitly add "print()" 
+                    if ("print".startsWith(currentWord.toLowerCase())) {
+                        // We add "print()" with display text. 
+                        // Note: We use unshift to put it at the TOP of the list (Priority)
+                        list.unshift({
+                            text: "print()", 
+                            displayText: "print()  (Function)",
+                            hint: function(cm, self, data) {
+                                // Custom insert to put cursor inside brackets
+                                cm.replaceRange("print()", self.from, self.to);
+                                var cursorPos = self.from;
+                                cm.setCursor({line: cursorPos.line, ch: cursorPos.ch + 6}); // Move inside ()
+                            }
+                        });
+                        
+                        // Ensure "print" (no brackets) is also there if desired, usually distinct
+                        // But since we want Priority, print() is first.
+                    }
+                }
 
                 return {
                     list: list,
@@ -209,7 +326,7 @@ print("List created.")
         }
     });
 
-    // 4. SETUP PYODIDE (Python Engine)
+    // --- 4. PYTHON ENGINE (Pyodide) ---
     let pyodide = null;
     const outputDiv = document.getElementById("output");
     const runBtn = document.getElementById("run-btn");
@@ -247,6 +364,23 @@ print("List created.")
         } catch (err) {
             log(err, true);
         }
+    }
+
+    // --- 5. SAVE FEATURE ---
+    function saveScript() {
+        const code = editor.getValue();
+        const blob = new Blob([code], { type: "text/x-python" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "script.py";
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 </script>
 
