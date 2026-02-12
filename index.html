@@ -17,7 +17,7 @@
             background-color: #212121;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #ddd;
-            overflow: hidden; /* Prevent body scroll, let containers scroll */
+            overflow: hidden;
         }
 
         #app-container {
@@ -29,27 +29,29 @@
         /* HEADER */
         header {
             background-color: #1a1a1a;
-            padding: 10px 20px;
+            padding: 0 20px;
             border-bottom: 1px solid #333;
             display: flex;
             align-items: center;
             justify-content: space-between;
             height: 50px;
+            flex-shrink: 0;
         }
 
         h1 { font-size: 18px; margin: 0; color: #fff; }
 
         /* EDITOR AREA */
         #editor-wrapper {
-            flex: 1; /* Takes up remaining space */
+            flex: 1;
             position: relative;
             font-size: 16px;
+            overflow: hidden;
         }
 
-        /* Force CodeMirror to fill the wrapper */
         .CodeMirror {
             height: 100%; 
             font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
         }
 
         /* CONSOLE AREA */
@@ -79,39 +81,38 @@
             color: #fff;
         }
 
-        /* RUN BUTTON */
+        /* BUTTONS */
         #run-btn {
             background-color: #28a745;
             color: white;
             border: none;
-            padding: 8px 20px;
-            border-radius: 5px;
+            padding: 6px 16px;
+            border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             font-size: 14px;
         }
         #run-btn:hover { background-color: #218838; }
-        #run-btn:disabled { background-color: #555; cursor: wait; }
 
         /* AUTOCOMPLETE STYLING (Pythonista Style) */
         .CodeMirror-hints {
             background: #2e2e2e !important;
             border: 1px solid #444 !important;
             border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            padding: 0 !important;
         }
         .CodeMirror-hint {
-            color: #aaa !important;
-            padding: 4px 8px !important;
-            border-radius: 2px;
+            color: #ccc !important;
+            padding: 6px 10px !important;
+            border-bottom: 1px solid #3a3a3a;
         }
+        .CodeMirror-hint:last-child { border-bottom: none; }
+        
         .CodeMirror-hint-active {
             background: #007acc !important; /* Blue highlight */
             color: #fff !important;
         }
-
-        /* UTILS */
-        .sys-msg { color: #888; font-style: italic; }
-        .err-msg { color: #ff6b6b; }
     </style>
 </head>
 <body>
@@ -123,19 +124,20 @@
     </header>
 
     <div id="editor-wrapper">
-        <textarea id="code-editor">
-# Type 'pri' below to test autocomplete!
+<textarea id="code-editor">
+# Example: Variable Autocomplete
+# 1. Run this code
+# 2. Try typing 'my' on a new line!
 
-print("Hello World")
+myList = ['bob', 'gram', 'oaky']
 
-def my_function():
-    return "Done"
+print("List created.")
 </textarea>
     </div>
 
     <div id="console-wrapper">
         <div id="console-header">Console Output</div>
-        <div id="output"><span class="sys-msg">Initializing Python environment...</span></div>
+        <div id="output"><span style="color:#888;">Initializing Python environment...</span></div>
     </div>
 </div>
 
@@ -143,50 +145,59 @@ def my_function():
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
 
 <script>
-    // 1. SETUP EDITOR
-    // Define a list of Python keywords for our simple autocomplete
+    // 1. BASE KEYWORDS
     const PYTHON_KEYWORDS = [
         "print", "import", "from", "def", "return", "if", "elif", "else", 
         "while", "for", "in", "try", "except", "class", "True", "False", 
-        "None", "and", "or", "not", "break", "continue", "pass", "lambda"
+        "None", "and", "or", "not", "break", "continue", "pass", "lambda",
+        "len", "range", "list", "dict", "set", "int", "str", "float"
     ];
 
-    // Initialize CodeMirror
+    // 2. SETUP EDITOR
     var editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
         mode: {name: "python", version: 3, singleLineStringErrors: false},
         theme: "material-darker",
         lineNumbers: true,
         indentUnit: 4,
-        autoCloseBrackets: true, // Automatically closes () [] {}
+        autoCloseBrackets: true,
         extraKeys: {"Ctrl-Space": "autocomplete"}
     });
 
-    // 2. ENABLE AUTO-PREDICT (The "Pythonista" Logic)
+    // 3. INTELLIGENT AUTOCOMPLETE LOGIC
     editor.on("keyup", function (cm, event) {
-        // Don't trigger on navigation keys (arrows, enter, etc.)
-        if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
+        // Ignore navigation keys
+        if (!cm.state.completionActive && 
             !event.ctrlKey && !event.altKey && !event.metaKey &&
-            (event.keyCode >= 65 && event.keyCode <= 90) || // Letters
-            (event.keyCode === 190) // Period (.)
-           ) { 
+            ((event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode === 190)) { // Letters or dot
             
-            // Manual hint function to use our keyword list
             CodeMirror.showHint(cm, function() {
                 var cur = cm.getCursor();
                 var token = cm.getTokenAt(cur);
+                var currentWord = token.string;
                 var start = token.start;
                 var end = cur.ch;
-                var word = token.string;
-                
-                // If typing a dot, show nothing or specific properties (simplified here)
-                if (word === ".") return null;
 
-                var list = PYTHON_KEYWORDS.filter(function(item) {
-                    return item.toLowerCase().startsWith(word.toLowerCase());
+                // Stop if typing special chars other than valid identifier parts
+                if (!currentWord.match(/^[a-zA-Z0-9_]+$/)) return;
+
+                // A. GET WORDS FROM DOCUMENT
+                // This regex finds every word in the editor
+                var text = cm.getValue();
+                var foundWords = text.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+
+                // B. MERGE WITH KEYWORDS
+                var allWords = PYTHON_KEYWORDS.concat(foundWords);
+
+                // C. REMOVE DUPLICATES (Set)
+                var uniqueWords = [...new Set(allWords)];
+
+                // D. FILTER MATCHES
+                // We show words that start with what you typed
+                var list = uniqueWords.filter(function(item) {
+                    return item !== currentWord && item.toLowerCase().startsWith(currentWord.toLowerCase());
                 });
 
                 return {
@@ -198,7 +209,7 @@ def my_function():
         }
     });
 
-    // 3. SETUP PYODIDE (Python Engine)
+    // 4. SETUP PYODIDE (Python Engine)
     let pyodide = null;
     const outputDiv = document.getElementById("output");
     const runBtn = document.getElementById("run-btn");
@@ -214,13 +225,12 @@ def my_function():
     async function initPython() {
         try {
             pyodide = await loadPyodide();
-            // Redirect Python 'print' to our div
             pyodide.setStdout({ batched: (msg) => log(msg) });
             pyodide.setStderr({ batched: (msg) => log(msg, true) });
             
             runBtn.innerText = "▶ RUN";
             runBtn.disabled = false;
-            log(">> Python Ready. Type code and press RUN.");
+            log(">> Python Ready.");
         } catch (err) {
             log("Error loading Python: " + err, true);
         }
@@ -228,12 +238,10 @@ def my_function():
 
     initPython();
 
-    // 4. RUN CODE FUNCTION
     async function runPython() {
         if (!pyodide) return;
-        outputDiv.innerHTML = ""; // Clear console
+        outputDiv.innerHTML = "";
         let code = editor.getValue();
-        
         try {
             await pyodide.runPythonAsync(code);
         } catch (err) {
