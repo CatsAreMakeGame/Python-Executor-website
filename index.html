@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pythonista Web Editor v1.3.5</title>
+    <title>Pythonista Web Editor v2.3</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
@@ -56,7 +56,7 @@
         #menu-btn:hover { color: #fff; }
 
         h1 { font-size: 16px; margin: 0; color: #fff; font-weight: 500; }
-        .version-tag { font-size: 10px; color: #666; margin-left: 5px; vertical-align: middle; }
+        .version-tag { font-size: 10px; color: #4caf50; margin-left: 5px; vertical-align: middle; border: 1px solid #4caf50; padding: 1px 4px; border-radius: 3px; }
 
         .header-right {
             display: flex;
@@ -158,9 +158,9 @@
 <div id="app-container">
     <header>
         <div class="header-left">
-            <button id="menu-btn" onclick="alert('Menu: Settings coming in v1.4!')">☰</button>
+            <button id="menu-btn" onclick="alert('Menu: Settings coming in future update!')">☰</button>
             <div>
-                <h1>Pythonista Runner <span class="version-tag">v1.3.5</span></h1>
+                <h1>Pythonista Runner <span class="version-tag">v2.3</span></h1>
             </div>
         </div>
         <div class="header-right">
@@ -171,11 +171,22 @@
 
     <div id="editor-wrapper">
 <textarea id="code-editor">
-# v1.3.5 Feature: F-Strings Support
-# Try typing the line below exactly:
-# print(f'
+# Pythonista Web Editor v2.3
+# Features active:
+# 1. Smart Autocomplete (Variables + Keywords)
+# 2. Dot (.) Method Suggestions
+# 3. Smart Dedent (else/elif/except)
+# 4. F-String Smart Quotes
+# 5. Priority print()
 
-my_val = 100
+is_Baker = False
+
+if is_Baker:
+    print('You are a Baker!')
+else:
+    print('You are not a Baker')
+    
+# Try typing f' below:
 </textarea>
     </div>
 
@@ -218,39 +229,42 @@ my_val = 100
         autoCloseBrackets: true,
         extraKeys: {
             "Ctrl-Space": "autocomplete",
-            // CUSTOM HANDLER FOR SINGLE QUOTE
-            "'": function(cm) {
-                return handleQuote(cm, "'");
-            },
-            // CUSTOM HANDLER FOR DOUBLE QUOTE
-            '"': function(cm) {
-                return handleQuote(cm, '"');
+            
+            // F-STRING QUOTE HANDLER
+            "'": function(cm) { return handleQuote(cm, "'"); },
+            '"': function(cm) { return handleQuote(cm, '"'); },
+            
+            // SMART DEDENT
+            ":": function(cm) {
+                cm.replaceSelection(":");
+                var cur = cm.getCursor();
+                var line = cm.getLine(cur.line);
+                var trimmed = line.trim();
+
+                // Keywords that should trigger a dedent
+                if (trimmed === "else:" || trimmed === "elif:" || trimmed === "except:" || trimmed === "finally:") {
+                    cm.indentLine(cur.line, "smart");
+                }
             }
         }
     });
 
-    // Helper logic for F-strings (v1.3.5)
     function handleQuote(cm, quoteChar) {
         var cur = cm.getCursor();
         var line = cm.getLine(cur.line);
         var charBefore = line.charAt(cur.ch - 1);
-        
-        // Check char BEFORE the one before (to see if 'f' is part of a word like 'if' or 'self')
-        // We only want to auto-close if 'f' is a prefix (preceded by space, bracket, or start of line)
         var charTwoBefore = (cur.ch >= 2) ? line.charAt(cur.ch - 2) : " ";
         var isWordCharBefore = /[a-zA-Z0-9_]/.test(charTwoBefore);
 
-        // If previous char is f/F and it's NOT part of a larger word
         if ((charBefore === "f" || charBefore === "F") && !isWordCharBefore) {
-            cm.replaceSelection(quoteChar + quoteChar); // Insert pair
-            cm.setCursor({line: cur.line, ch: cur.ch + 1}); // Move to middle
+            cm.replaceSelection(quoteChar + quoteChar);
+            cm.setCursor({line: cur.line, ch: cur.ch + 1});
         } else {
-            // Default behavior (triggers standard autoCloseBrackets)
             return CodeMirror.Pass;
         }
     }
 
-    // --- 3. ADVANCED AUTOCOMPLETE ENGINE ---
+    // --- 3. AUTOCOMPLETE ENGINE ---
     editor.on("keyup", function (cm, event) {
         if (!cm.state.completionActive && 
             !event.ctrlKey && !event.altKey && !event.metaKey &&
@@ -264,7 +278,6 @@ my_val = 100
                 var start = token.start;
                 var end = cur.ch;
                 
-                // Smart Dot Context Detection
                 var isDotContext = false;
                 if (currentWord === ".") {
                     isDotContext = true;
@@ -293,7 +306,6 @@ my_val = 100
                         return item !== currentWord && item.toLowerCase().startsWith(currentWord.toLowerCase());
                     });
 
-                    // Priority Print
                     if ("print".startsWith(currentWord.toLowerCase())) {
                         list.unshift({
                             text: "print()", 
