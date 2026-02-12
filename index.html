@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pythonista Web Editor v2.3</title>
+    <title>Pythonista Web Editor v1.2.4</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
@@ -158,9 +158,9 @@
 <div id="app-container">
     <header>
         <div class="header-left">
-            <button id="menu-btn" onclick="alert('Menu: Settings coming in future update!')">☰</button>
+            <button id="menu-btn" onclick="alert('Menu: Settings coming soon!')">☰</button>
             <div>
-                <h1>Pythonista Runner <span class="version-tag">v1.2.3</span></h1>
+                <h1>Pythonista Runner <span class="version-tag">v1.2.4</span></h1>
             </div>
         </div>
         <div class="header-right">
@@ -171,22 +171,14 @@
 
     <div id="editor-wrapper">
 <textarea id="code-editor">
-# Pythonista Web Editor v1.2.3
-# Features active:
-# 1. Smart Autocomplete (Variables + Keywords)
-# 2. Dot (.) Method Suggestions
-# 3. Smart Dedent (else/elif/except)
-# 4. F-String Smart Quotes
-# 5. Priority print()
+# Pythonista Web Editor v1.2.4
+# Feature Added: Input() support!
 
-is_Baker = False
+name = input("Enter your name: ")
+print(f"Hello, {name}!")
 
-if is_Baker:
-    print('You are a Baker!')
-else:
-    print('You are not a Baker')
-    
-# Try typing f' below:
+age = input("Enter your age: ")
+print(f"Wow, {age} is a great age.")
 </textarea>
     </div>
 
@@ -211,7 +203,7 @@ else:
         "import", "from", "def", "return", "if", "elif", "else", 
         "while", "for", "in", "try", "except", "class", "True", "False", 
         "None", "and", "or", "not", "break", "continue", "pass", "lambda",
-        "len", "range", "list", "dict", "set", "int", "str", "float"
+        "len", "range", "list", "dict", "set", "int", "str", "float", "input"
     ];
 
     const PYTHON_METHODS = [
@@ -241,7 +233,6 @@ else:
                 var line = cm.getLine(cur.line);
                 var trimmed = line.trim();
 
-                // Keywords that should trigger a dedent
                 if (trimmed === "else:" || trimmed === "elif:" || trimmed === "except:" || trimmed === "finally:") {
                     cm.indentLine(cur.line, "smart");
                 }
@@ -357,11 +348,32 @@ else:
 
     initPython();
 
+    // CUSTOM INPUT HANDLER
+    // Pyodide cannot pause execution natively in the main thread for input()
+    // We override builtins.input to use the browser's JS prompt()
+    const BOOTLOADER_CODE = `
+import builtins
+from js import prompt
+
+def _input(p=""):
+    val = prompt(p)
+    if val is None:
+        return ""
+    print(f"{p}{val}") # Echo input to console for realism
+    return str(val)
+
+builtins.input = _input
+`;
+
     async function runPython() {
         if (!pyodide) return;
         outputDiv.innerHTML = "";
         let code = editor.getValue();
+        
         try {
+            // Load the custom input function first
+            await pyodide.runPythonAsync(BOOTLOADER_CODE);
+            // Then run user code
             await pyodide.runPythonAsync(code);
         } catch (err) {
             log(err, true);
