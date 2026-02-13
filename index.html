@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pythonista Web Editor v1.2.3</title>
+    <title>Pythonista Web Editor v1.2.4</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
@@ -61,10 +61,11 @@
         .header-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        #save-btn {
+        /* BUTTON STYLES */
+        button.action-btn {
             background-color: #444;
             color: #fff;
             border: none;
@@ -75,20 +76,43 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: background 0.2s;
         }
-        #save-btn:hover { background-color: #555; }
+        button.action-btn:hover { background-color: #555; }
 
         #run-btn {
             background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 13px;
         }
         #run-btn:hover { background-color: #218838; }
+
+        /* FILENAME INPUT */
+        .filename-container {
+            display: flex;
+            align-items: center;
+            background: #252526;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0 5px;
+            margin-right: 5px;
+        }
+        #filename-input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 13px;
+            width: 80px;
+            padding: 5px 2px;
+            text-align: right;
+            outline: none;
+        }
+        .file-ext {
+            color: #888;
+            font-size: 13px;
+            padding-right: 5px;
+            user-select: none;
+        }
+        #filename-input:focus { width: 120px; } /* Expand on focus */
 
         /* EDITOR AREA */
         #editor-wrapper {
@@ -158,35 +182,38 @@
 <div id="app-container">
     <header>
         <div class="header-left">
-            <button id="menu-btn" onclick="alert('Menu: Settings coming in future update!')">☰</button>
+            <button id="menu-btn" onclick="alert('Menu: Settings coming soon!')">☰</button>
             <div>
-                <h1>Pythonista Runner <span class="version-tag">v1.2.3</span></h1>
+                <h1>Pythonista Runner <span class="version-tag">v1.2.4</span></h1>
             </div>
         </div>
+        
         <div class="header-right">
-            <button id="save-btn" onclick="saveScript()">💾 Save</button>
-            <button id="run-btn" onclick="runPython()">Loading...</button>
+            <input type="file" id="file-upload" accept=".py" style="display: none;" onchange="handleFileUpload(this)">
+            
+            <button class="action-btn" onclick="document.getElementById('file-upload').click()">📂 Open</button>
+            
+            <div class="filename-container">
+                <input type="text" id="filename-input" value="script" placeholder="name">
+                <span class="file-ext">.py</span>
+            </div>
+
+            <button class="action-btn" onclick="saveScript()">💾 Save</button>
+            <button class="action-btn" id="run-btn" onclick="runPython()">Loading...</button>
         </div>
     </header>
 
     <div id="editor-wrapper">
 <textarea id="code-editor">
-# Pythonista Web Editor v1.2.3
-# Features active:
-# 1. Smart Autocomplete (Variables + Keywords)
-# 2. Dot (.) Method Suggestions
-# 3. Smart Dedent (else/elif/except)
-# 4. F-String Smart Quotes
-# 5. Priority print()
+# Pythonista Web Editor v1.2.4
+# New Features:
+# 1. Edit filename in the top bar before saving
+# 2. Click "Open" to import a .py file
 
-is_Baker = False
+def greet(name):
+    return f"Hello, {name}!"
 
-if is_Baker:
-    print('You are a Baker!')
-else:
-    print('You are not a Baker')
-    
-# Try typing f' below:
+print(greet("Developer"))
 </textarea>
     </div>
 
@@ -241,7 +268,6 @@ else:
                 var line = cm.getLine(cur.line);
                 var trimmed = line.trim();
 
-                // Keywords that should trigger a dedent
                 if (trimmed === "else:" || trimmed === "elif:" || trimmed === "except:" || trimmed === "finally:") {
                     cm.indentLine(cur.line, "smart");
                 }
@@ -368,18 +394,46 @@ else:
         }
     }
 
-    // --- 5. SAVE FEATURE ---
+    // --- 5. FILE HANDLING (SAVE/OPEN) ---
+    
+    // Save with custom name
     function saveScript() {
         const code = editor.getValue();
+        const nameInput = document.getElementById('filename-input').value || "script";
+        const filename = nameInput.endsWith(".py") ? nameInput : nameInput + ".py";
+        
         const blob = new Blob([code], { type: "text/x-python" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "script.py";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    // Open/Import file logic
+    function handleFileUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            editor.setValue(content);
+            
+            // Auto update filename box to match imported file
+            let name = file.name;
+            if (name.endsWith(".py")) name = name.substring(0, name.length - 3);
+            document.getElementById('filename-input').value = name;
+            
+            log(">> Loaded file: " + file.name);
+        };
+        reader.readAsText(file);
+        
+        // Reset input so you can load the same file again if needed
+        input.value = '';
     }
 </script>
 
